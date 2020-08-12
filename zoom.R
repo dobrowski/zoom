@@ -2,56 +2,16 @@
 
 library(MCOE)
 library(tidyverse)
-library(here)
+
 library(vroom)
 library(janitor)
+library(lubridate)
+library(here)
 
 
-# setup_dir()
+## Read all files in the data directory
 
-
-# 
-# import_files <- function(dir,globy, delimy){
-#     setwd(dir)
-# 
-#     files <- fs::dir_ls(glob = globy)
-# 
-#     print(files)
-# 
-#     output <- map_df(files, ~vroom(.x, delim = delimy , .name_repair = ~ janitor::make_clean_names(., case = "upper_camel")))
-# 
-#     setwd(here())
-# 
-#     output
-# }
-# 
-# 
-# zoom_vroom <- import_files(here("data"),"meeting*csv",",")
-# 
-# 
-# 
-# 
-# setwd(here("data"))
-# 
-# files <- fs::dir_ls()
-# 
-# zoom_vroom <- vroom(files, delim = ",", .name_repair = ~ janitor::make_clean_names(., case = "upper_camel"))
-# 
-# setwd(here())
-# 
-# 
-# zoom_vroom1 <- vroom(here("data", "meetinglistdetails_20200101_20200201.csv"), delim = ",", .name_repair = ~ janitor::make_clean_names(., case = "upper_camel"))
-# 
-# zoom_spec <- spec(zoom_vroom1)
-# 
-# 
-# 
-# zoom6 <- read_csv(here("data", "meetinglistdetails_20200601_20200701.csv"))
-
-
-
-
-setwd(here("data"))
+setwd(here::here("data"))
 
 files <- fs::dir_ls()
 
@@ -62,17 +22,19 @@ output <- map_df(files, ~read_csv(.x)) %>% clean_names(case = "upper_camel")
 setwd(here())
 
 
-
+### Refine dataset
 
 ed.srv <- output %>%
     filter(str_detect(Department,"Educational")) %>%
-    group_by(Topic, UserName,MeetingId,Participants, StartTime, EndTime, DurationMinutes, NameOriginalName) %>%
+    mutate(Day = mdy_hms(StartTime) %>% as_date() ) %>%
+    group_by(Topic, UserName,MeetingId,Participants, Day, DurationMinutes, NameOriginalName) %>%
     summarise(ParticipationMinutes = sum(DurationMinutes1)) %>%
-    ungroup()
+    ungroup() 
+
 
 
 EScount <- ed.srv %>%
-    group_by(Topic, UserName,MeetingId,Participants) %>%
+    group_by(Topic, UserName,MeetingId, Participants) %>%
     count() %>% 
     ungroup() %>% 
     na.omit() %>% 
@@ -102,3 +64,84 @@ ESstaffcount %>%
     ggplot(aes(y = reorder(UserName,events), x = events )) + 
     geom_col() + 
     mcoe_theme
+
+
+
+
+
+
+###  ILN 
+
+
+
+ILN <- ed.srv %>%
+    filter(str_detect(Topic, "ILN")) %>%
+    group_by(Topic, UserName,MeetingId,Day ) %>%
+    summarise(MinutesCollective = sum(ParticipationMinutes),
+              Attendees = n()) %>%
+    ungroup() %>% 
+    na.omit() 
+
+
+ggplot(ILN, aes(x= Day, y= Attendees)) +
+    geom_line(color = "blue") +
+    geom_point() +
+    mcoe_theme +
+    labs(title = "ILN Zoom meeting attendees",
+         y = "Total number of unique names \nper meeting",
+         caption = "Note: Only includes Meetings with 'ILN' in the Meeting Name\n
+         Data pulled on July 21")
+
+
+ggsave("Attendees.png", width = 8, height = 5)
+
+
+ggplot(ILN, aes(x= Day, y= MinutesCollective)) +
+    geom_line(color = "blue") +
+    geom_point() +
+    mcoe_theme +
+    labs(title = "Total Minutes of Participation in ILN Zoom meetings",
+         y = "Sum of minutes of all \nparticipants per meeting",
+         caption = "Note: Only includes Meetings with 'ILN' in the Meeting Name\n
+         Data pulled on July 21")
+
+
+ggsave("Minutes.png", width = 8, height = 5)
+
+
+
+
+ILNpeople <- ed.srv %>%
+    filter(str_detect(Topic, "ILN")) %>%
+    group_by(NameOriginalName ) %>%
+    summarise(TotalMinutes = sum(ParticipationMinutes),
+              TotalJoins = n()) %>%
+    ungroup() %>% 
+    na.omit() 
+
+ILNpeople %>%
+    arrange(desc(TotalJoins)) %>%
+    top_n(20) %>%
+    ggplot(aes(x = reorder(NameOriginalName,TotalJoins), y = TotalJoins)) +
+    geom_col(fill = "blue") +
+    lims(y = c(0,15)) +
+    coord_flip() +
+    mcoe_theme +
+    labs(title = "Most Frequent Attendees at ILN meetings",
+         y = "Number of meetings")
+
+
+ggsave("Frequent.png", width = 6, height = 6)
+
+ILNpeople %>%
+    arrange(desc(TotalMinutes)) %>%
+    top_n(20) %>%
+    ggplot(aes(x = reorder(NameOriginalName,TotalMinutes), y = TotalMinutes)) +
+    geom_col(fill = "blue") +
+    coord_flip() +
+    mcoe_theme +
+    labs(title = "Longest Participation at ILN meetings",
+         y = "Total number of minutes")
+
+
+ggsave("Longest.png", width = 6, height = 6)
