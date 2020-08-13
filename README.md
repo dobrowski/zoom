@@ -1,2 +1,2 @@
 # zoom
-Analytics to summaries events hosted in zoom
+Analytics to summarize events hosted in zoom
