@@ -171,6 +171,9 @@ ggsave("Longest-staff.png", width = 6, height = 6)
 ######  Feedback form --------
 
 
+levs <- c("Strongly Disagree", "Disagree", "Neutral", "Agree", "Strongly Agree")
+
+
 feedback <- read_sheet("https://docs.google.com/spreadsheets/d/1yFoOrQUl_L6FMZeAmX2xQ0x8lFFOH6pKv1sT_1OIRTk/edit#gid=102281525",
                        .name_repair = janitor::make_clean_names)
 
@@ -184,5 +187,9 @@ feedback_clean <- feedback %>%
            rate_apply = please_rate_the_following_statements_i_can_apply_todays_event_to_my_work,
            rate_commun = please_rate_the_following_statements_the_presenter_s_communicated_the_material_well,
            rate_rec = please_rate_the_following_statements_i_would_recommend_this_to_my_colleagues,
-           comments = additional_comments_please_note_that_we_cannot_respond_personally_to_any_statements_made_here)
+           comments = additional_comments_please_note_that_we_cannot_respond_personally_to_any_statements_made_here) %>%
+    mutate_at(vars(starts_with("rate")),  factor, levels = levs)
     
+
+
+
