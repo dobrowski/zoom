@@ -148,6 +148,26 @@ ILNpeople %>%
 ggsave("Longest.png", width = 6, height = 6)
 
 
+# Note for this to work you need to run the staff-pattern file first
+
+ILNpeople %>%
+    arrange(desc(TotalMinutes)) %>%
+    top_n(20) %>%
+    mutate(is.staff =  str_detect(NameOriginalName,staff.pattern)) %>%
+    ggplot(aes(x = reorder(NameOriginalName,TotalMinutes), y = TotalMinutes, fill = is.staff)) +
+    geom_col() +
+    coord_flip() +
+    mcoe_theme +
+    theme(legend.position = "none") +
+    labs(title = "Longest Participation at ILN meetings",
+         subtitle = "Ed Services staff are in orange",
+         y = "Total number of minutes")
+
+
+ggsave("Longest-staff.png", width = 6, height = 6)
+
+
+
 ######  Feedback form --------
 
 
