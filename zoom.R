@@ -7,6 +7,7 @@ library(vroom)
 library(janitor)
 library(lubridate)
 library(here)
+library(googlesheets4)
 
 
 ## Read all files in the data directory
@@ -145,3 +146,23 @@ ILNpeople %>%
 
 
 ggsave("Longest.png", width = 6, height = 6)
+
+
+######  Feedback form --------
+
+
+feedback <- read_sheet("https://docs.google.com/spreadsheets/d/1yFoOrQUl_L6FMZeAmX2xQ0x8lFFOH6pKv1sT_1OIRTk/edit#gid=102281525",
+                       .name_repair = janitor::make_clean_names)
+
+
+feedback_clean <- feedback %>% 
+    mutate(meetingID = str_extract( what_was_the_link_for_your_zoom_meeting, "[[:digit:]]{11}"  ) ) %>%
+    mutate(MeetingId = paste(str_sub(meetingID,1,3),str_sub(meetingID,4,7),str_sub(meetingID,8,11)  )  ) %>%
+    mutate(Day = ymd_hms(timestamp) %>% as_date() ) %>%
+    select(Day,
+           MeetingId,
+           rate_apply = please_rate_the_following_statements_i_can_apply_todays_event_to_my_work,
+           rate_commun = please_rate_the_following_statements_the_presenter_s_communicated_the_material_well,
+           rate_rec = please_rate_the_following_statements_i_would_recommend_this_to_my_colleagues,
+           comments = additional_comments_please_note_that_we_cannot_respond_personally_to_any_statements_made_here)
+    
