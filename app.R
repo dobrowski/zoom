@@ -3,17 +3,12 @@
 #
 
 library(shiny)
-# library(MCOE)
 library(tidyverse)
 library(ggthemes)
-
-# library(vroom)
-# library(janitor)
 library(lubridate)
 library(here)
 library(usethis)
 library(scales)
-# library(googlesheets4)
 
 
 mcoe_theme <- list(ggthemes::theme_hc(),
