@@ -1,0 +1,13 @@
+name: zoomshiny
+title: zoomshiny
+username:
+account: mcoe
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 2998260
+bundleId: 3740785
+url: https://mcoe.shinyapps.io/zoomshiny/
+when: 1602696592.77886
+asMultiple: FALSE
+asStatic: FALSE
+ignoredFiles: .Rapp.history|.RData|Attendees.png|Frequent.png|LICENSE|Longest-staff.png|Longest.png|Minutes.png|README.md|SEL Zoom meetings.csv|staff-pattern.R|zoom.R|data

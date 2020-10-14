@@ -10,11 +10,11 @@ library(here)
 library(googlesheets4)
 
 
-## Read all files in the data directory
+### Read all files in the data directory  -----
 
 setwd(here::here("data"))
 
-files <- fs::dir_ls()
+files <- fs::dir_ls(glob = "meeting*")
 
 print(files)
 
@@ -23,15 +23,19 @@ output <- map_df(files, ~read_csv(.x)) %>% clean_names(case = "upper_camel")
 setwd(here())
 
 
-### Refine dataset
+### Refine dataset  ------
 
 ed.srv <- output %>%
     filter(str_detect(Department,"Educational")) %>%
-    mutate(Day = mdy_hms(StartTime) %>% as_date() ) %>%
+    mutate(Day = mdy_hms(StartTime) %>% as_date() ,
+           Topic = str_to_title(Topic),
+           NameOriginalName = str_replace(NameOriginalName, "[[:space:]]\\(Host\\)", "")) %>%
     group_by(Topic, UserName,MeetingId,Participants, Day, DurationMinutes, NameOriginalName) %>%
     summarise(ParticipationMinutes = sum(DurationMinutes1)) %>%
     ungroup() 
 
+
+write_rds(ed.srv, "edsrv.rds")
 
 
 EScount <- ed.srv %>%
@@ -51,7 +55,7 @@ ESstaffcount <- EScount  %>%
 
 
 
-### Graphs
+### Graphs -------
 
 
 ESstaffcount %>% 
@@ -71,7 +75,7 @@ ESstaffcount %>%
 
 
 
-###  ILN 
+###  ILN ----
 
 
 
@@ -192,4 +196,118 @@ feedback_clean <- feedback %>%
     
 
 
+###  Standardize for text input --------
 
+
+
+zoom.events <- function(keyword){
+    ed.srv %>%
+        filter(str_detect(Topic, keyword),
+               !str_detect(Topic,"lanning")) %>%
+        group_by(Topic, UserName,MeetingId,Day ) %>%
+        summarise(MinutesCollective = sum(ParticipationMinutes),
+                  Attendees = n()) %>%
+        ungroup() %>% 
+        na.omit() 
+    
+}
+
+
+
+zoom.people <- function(keyword){
+    ed.srv %>%
+        filter(str_detect(Topic, keyword),
+               !str_detect(Topic,"lanning")) %>%
+        group_by(NameOriginalName ) %>%
+        summarise(TotalMinutes = sum(ParticipationMinutes),
+                  TotalJoins = n()) %>%
+        ungroup() %>% 
+        na.omit() 
+    }
+
+
+ilntest <- zoom.events("ILN")
+
+ilntest2 <- zoom.people("STEAM")
+
+sum(ilntest$MinutesCollective)
+
+sum(ilntest2$TotalMinutes)
+sum(ilntest$Attendees)
+
+sum(ilntest2$TotalJoins)
+
+
+SEL <- zoom.events("SEL")
+
+write_csv(SEL, "SEL Zoom meetings.csv")
+
+
+zoom.event.plot <- function(keyword, pulldate) {
+    
+zoom.events(keyword) %>%
+    ggplot(aes(x= Day, y= Attendees)) +
+    geom_line(color = "blue") +
+    geom_point() +
+    mcoe_theme +
+    labs(title = paste0(keyword," Zoom meeting attendees"),
+         y = "Total number of unique names \nper meeting",
+         caption = paste0("Note: Only includes Meetings with '",keyword,"' in the Meeting Name\n
+         Data pulled on ",pulldate) )
+}
+
+zoom.event.plot("Admin", "August 25")
+
+
+
+
+
+zoom.event.minutes.plot <- function(keyword, pulldate) {
+    
+    zoom.events(keyword) %>%
+        ggplot(aes(x= Day, y= MinutesCollective)) +
+        geom_line(color = "blue") +
+        geom_point() +
+        mcoe_theme +
+        labs(title = paste0("Total Minutes of Participation in ",keyword," Zoom meetings"),
+             y = "Sum of minutes of all \nparticipants per meeting",
+             caption = paste0("Note: Only includes Meetings with '",keyword,"' in the Meeting Name\n
+         Data pulled on ",pulldate) )
+}
+
+
+zoom.event.minutes.plot("Admin", "August 25")
+
+
+
+
+ed.srv %>%
+    filter(str_detect(Topic, "ILN")) %>%
+    group_by(NameOriginalName ) %>%
+    summarise(TotalMinutes = sum(ParticipationMinutes),
+              TotalJoins = n()) %>%
+    ungroup() %>% 
+    na.omit() 
+
+
+
+zoom.people.plot <- function(keyword, pulldate) {
+
+zoom.people(keyword) %>%
+        arrange(desc(TotalMinutes)) %>%
+        slice_head(n = 20) %>%
+        mutate(is.staff =  str_detect(NameOriginalName,staff.pattern)) %>%
+        ggplot(aes(x = reorder(NameOriginalName,TotalMinutes), y = TotalMinutes, fill = is.staff)) +
+        geom_col() +
+        coord_flip() +
+        mcoe_theme +
+        theme(legend.position = "none") +
+    labs(title = paste0("Longest Participation at ",keyword," Zoom meetings"),
+         subtitle = "Ed Services staff are in orange",
+         y = "Total number of minutes",
+         caption = paste0("Note: Only includes Meetings with '",keyword,"' in the Meeting Name\n
+         Data pulled on ",pulldate) )
+
+}
+
+zoom.people.plot("Teacher", "August 25")

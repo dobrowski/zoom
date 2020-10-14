@@ -1,0 +1,12 @@
+name: ZoomMeetings
+title: ZoomMeetings
+username:
+account: mcoe
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 2998195
+bundleId: 3731754
+url: https://mcoe.shinyapps.io/ZoomMeetings/
+when: 1602536841.96868
+asMultiple: FALSE
+asStatic: FALSE
