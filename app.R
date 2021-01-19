@@ -132,6 +132,7 @@ staff <- c(
     ,"Irma Lopez"
     ,"Lety Gomez"
     ,"Alicia Gregory"
+    ,"Monica Cano"
 )
 
 keywordtable <- tribble(~"Staff", ~"Keyword",

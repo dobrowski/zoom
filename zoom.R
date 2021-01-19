@@ -13,7 +13,8 @@ library(googlesheets4)
 
 setwd(here::here("data"))
 
-files <- fs::dir_ls(glob = "meeting*")
+#files <- fs::dir_ls(glob = "meeting*")
+files <- fs::dir_ls(glob = "meetinglistdetails_2020*")
 
 print(files)
 
