@@ -30,6 +30,57 @@ ed.srv <- readRDS("edsrv.rds")
 
 pulldate <- max(ed.srv$Day)
 
+
+staff <- c(
+    "Alicia Diaz"
+    ,"Alicia Gregory"
+    ,"Caryn Lewis"
+    ,"Cathy Cranson"
+    ,"David Dobrowski"
+    ,"Denise Green"
+    ,"Dora Salazar"
+    ,"Dora Ann Salazar"
+    ,"Esther Rubio"
+    ,"jrmendoza"
+    ,"Laurie Ramirez"
+    ,"Michelle Ramirez"
+    ,"Megan Matteoni"
+    ,"Philip Davis"
+    ,"Roberto Nunez"
+    ,"Roberto Núñez"
+    ,"Will Franzell"
+    ,"Michelle Rios"
+    ,"Gail Kuehl"
+    ,"Adriana Chavarin"
+    ,"Maria Ramirez"
+    ,"Juanita Savinon"
+    ,"Rod Garcia"
+    ,"Mara Wold"
+    ,"Norma Esparza"
+    ,"Lety Gomez-Gong"
+    ,"Jennifer Elemen"
+    ,"Edi Porter"
+    ,"Denise Green"
+    ,"Eliza Gomez"
+    ,"Gelacio Gonzalez"
+    ,"Irma Lopez"
+    ,"Lety Gomez"
+    ,"Alicia Gregory"
+    ,"Monica Cano"
+    ,"Eric Painter"
+)
+
+keywordtable <- tribble(~"Staff", ~"Keyword",
+                        "Denise","",
+                        "Will","",
+                        "Rod","",
+                        "Edi","",
+                        "Cathy","")
+
+
+staff.pattern <- paste(staff, collapse = "|")
+
+
 #### Functions --------
 
 zoom.events <- function(df, keyword){
@@ -104,57 +155,6 @@ zoom.people.plot <- function(df, keyword, pulldate) {
     
 }
 
-### Datavariables --------
-
-staff <- c(
-    "Alicia Diaz"
-    ,"Alicia Gregory"
-    ,"Caryn Lewis"
-    ,"Cathy Cranson"
-    ,"David Dobrowski"
-    ,"Denise Green"
-    ,"Dora Salazar"
-    ,"Dora Ann Salazar"
-    ,"Esther Rubio"
-    ,"jrmendoza"
-    ,"Laurie Ramirez"
-    ,"Michelle Ramirez"
-    ,"Megan Matteoni"
-    ,"Philip Davis"
-    ,"Roberto Nunez"
-    ,"Roberto Núñez"
-    ,"Will Franzell"
-    ,"Michelle Rios"
-    ,"Gail Kuehl"
-    ,"Adriana Chavarin"
-    ,"Maria Ramirez"
-    ,"Juanita Savinon"
-    ,"Rod Garcia"
-    ,"Mara Wold"
-    ,"Norma Esparza"
-    ,"Lety Gomez-Gong"
-    ,"Jennifer Elemen"
-    ,"Edi Porter"
-    ,"Denise Green"
-    ,"Eliza Gomez"
-    ,"Gelacio Gonzalez"
-    ,"Irma Lopez"
-    ,"Lety Gomez"
-    ,"Alicia Gregory"
-    ,"Monica Cano"
-    ,"Eric Painter"
-)
-
-keywordtable <- tribble(~"Staff", ~"Keyword",
-                       "Denise","",
-                       "Will","",
-                       "Rod","",
-                       "Edi","",
-                       "Cathy","")
-
-
-staff.pattern <- paste(staff, collapse = "|")
-
 
 ###  User Interface ---------
 
@@ -189,8 +189,8 @@ ui <- fluidPage(
            plotOutput("EventPlot", height = "400px", width = "600px"),
            plotOutput("EventMinutesPlot", height = "400px", width = "600px"),
            plotOutput("PeoplePlot", height = "600px", width = "600px"),
-           verbatimTextOutput("dateRangeText"),
-           verbatimTextOutput("numRowsText"),
+           # verbatimTextOutput("dateRangeText"),
+           # verbatimTextOutput("numRowsText"),
            
            ),
 

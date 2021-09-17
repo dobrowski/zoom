@@ -11,7 +11,7 @@ library(googlesheets4)
 
 ### Read all files in the data directory  -----
 
-setwd(here::here("data","2020-21")) # Updated for particular school year
+setwd(here::here("data")) # Updated for particular school year
 
 #files <- fs::dir_ls(glob = "meeting*")
 files <- fs::dir_ls(glob = "meetinglistdetails_202*")

@@ -35,7 +35,15 @@ termlist <- c("coach",
   "childcare",
   "national",
   "pbis",
-  "quality matters") %>%
+  "quality matters",
+ "civic",
+    "buddy",
+    "response & recovery",
+    "climate",
+    "lever",
+    "soledad",
+    "udl"
+  ) %>%
     paste0(collapse = "|")
 
 ed.srv.TOTAL <- ed.srv %>%
@@ -49,3 +57,30 @@ events <- ed.srv.TOTAL %>%
 
 
 write_sheet(ss = "https://docs.google.com/spreadsheets/d/14aZmSPg7WJwO7SrbNpM-seoLaFThdldX6MZYnfxvVpo/edit#gid=1807342369" , data = events, sheet = "events")
+
+
+
+
+
+list.events <- ed.srv.TOTAL %>%
+    filter(str_to_lower(Topic) %>%
+               str_detect( termlist   )
+           ) %>%
+    group_by(Topic, UserName,MeetingId,Day ) %>%
+    summarise(MinutesCollective = sum(ParticipationMinutes),
+              Attendees = n()) %>%
+    ungroup() %>% 
+    na.omit() 
+
+
+
+
+
+list.people <-     ed.srv.TOTAL %>%
+    filter(str_to_lower(Topic) %>%
+               str_detect( termlist   ) ) %>%
+        group_by(NameOriginalName ) %>%
+        summarise(TotalMinutes = sum(ParticipationMinutes),
+                  TotalJoins = n()) %>%
+        ungroup() %>% 
+        na.omit() 
