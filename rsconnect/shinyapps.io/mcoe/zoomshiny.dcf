@@ -5,9 +5,10 @@ account: mcoe
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 2998260
-bundleId: 3816571
+bundleId: 5044398
 url: https://mcoe.shinyapps.io/zoomshiny/
-when: 1604429119.30902
+when: 1631904547.52319
+lastSyncTime: 1631904547.5232
 asMultiple: FALSE
 asStatic: FALSE
-ignoredFiles: .Rapp.history|.RData|All In Zoom participants refined.csv|All In Zoom participants.csv|Allin.R|Attendees.png|Frequent.png|LICENSE|Longest-staff.png|Longest.png|Minutes.png|OMS participants.csv|README.md|sandbox.R|SEL Zoom meetings.csv|staff-pattern.R|zoom.R|data
+ignoredFiles: .Rapp.history|.RData|All In Zoom participants 4 10.csv|All In Zoom participants refined.csv|All In Zoom participants.csv|Allin.R|app2.R|Attendees.png|edsrv copy.rds|edsrvCOVID.rds|Frequent.png|LICENSE|Longest-staff.png|Longest.png|MichelleAnnualReport.R|Minutes.png|OMS participants.csv|README.md|sandbox.R|SEL Zoom meetings.csv|staff-pattern.R|zoom.R|data

@@ -2,6 +2,10 @@
 # This is a Shiny web application. 
 #
 
+
+### Libraries --------
+
+
 library(shiny)
 library(tidyverse)
 library(ggthemes)
@@ -10,6 +14,8 @@ library(here)
 library(usethis)
 library(scales)
 
+
+### Basic Inputs --------
 
 mcoe_theme <- list(ggthemes::theme_hc(),
                    ggthemes::scale_fill_few() ,
@@ -24,8 +30,10 @@ ed.srv <- readRDS("edsrv.rds")
 
 pulldate <- max(ed.srv$Day)
 
-zoom.events <- function(keyword){
-    ed.srv %>%
+#### Functions --------
+
+zoom.events <- function(df, keyword){
+    df %>%
         filter(str_detect(Topic, str_to_title(keyword)),
                !str_detect(Topic,"lanning")) %>%
         group_by(Topic, UserName,MeetingId,Day ) %>%
@@ -36,8 +44,8 @@ zoom.events <- function(keyword){
     
 }
 
-zoom.people <- function(keyword){
-    ed.srv %>%
+zoom.people <- function(df, keyword){
+    df %>%
         filter(str_detect(Topic, str_to_title(keyword)),
                !str_detect(Topic,"lanning")) %>%
         group_by(NameOriginalName ) %>%
@@ -47,9 +55,9 @@ zoom.people <- function(keyword){
         na.omit() 
 }
 
-zoom.event.plot <- function(keyword, pulldate) {
+zoom.event.plot <- function(df , keyword, pulldate) {
     
-    zoom.events(keyword) %>%
+    zoom.events(df, keyword) %>%
         ggplot(aes(x= Day, y= Attendees)) +
         geom_line(color = "blue") +
         geom_point() +
@@ -62,9 +70,9 @@ zoom.event.plot <- function(keyword, pulldate) {
 
 
 
-zoom.event.minutes.plot <- function(keyword, pulldate) {
+zoom.event.minutes.plot <- function(df, keyword, pulldate) {
     
-    zoom.events(keyword) %>%
+    zoom.events(df, keyword) %>%
         ggplot(aes(x= Day, y= MinutesCollective)) +
         geom_line(color = "blue") +
         geom_point() +
@@ -77,9 +85,9 @@ zoom.event.minutes.plot <- function(keyword, pulldate) {
 
 
 
-zoom.people.plot <- function(keyword, pulldate) {
+zoom.people.plot <- function(df, keyword, pulldate) {
     
- zoom.people(keyword) %>%
+ zoom.people(df, keyword) %>%
         arrange(desc(TotalMinutes)) %>%
         slice_head(n = 30) %>%
         mutate(is.staff =  str_detect(NameOriginalName,staff.pattern)) %>%
@@ -96,7 +104,7 @@ zoom.people.plot <- function(keyword, pulldate) {
     
 }
 
-
+### Datavariables --------
 
 staff <- c(
     "Alicia Diaz"
@@ -114,6 +122,7 @@ staff <- c(
     ,"Megan Matteoni"
     ,"Philip Davis"
     ,"Roberto Nunez"
+    ,"Roberto Núñez"
     ,"Will Franzell"
     ,"Michelle Rios"
     ,"Gail Kuehl"
@@ -133,6 +142,7 @@ staff <- c(
     ,"Lety Gomez"
     ,"Alicia Gregory"
     ,"Monica Cano"
+    ,"Eric Painter"
 )
 
 keywordtable <- tribble(~"Staff", ~"Keyword",
@@ -146,6 +156,8 @@ keywordtable <- tribble(~"Staff", ~"Keyword",
 staff.pattern <- paste(staff, collapse = "|")
 
 
+###  User Interface ---------
+
 # Define UI for application
 ui <- fluidPage(
 
@@ -154,9 +166,18 @@ ui <- fluidPage(
 
     # Text input field
     sidebarLayout(
+        sidebarPanel(
         textInput("keyword"," Please enter phrase from Zoom Meeting Title","ILN"),
         verbatimTextOutput("value")
-        ),
+        ,
+        dateRangeInput('dateRange',
+                       label = 'Date range input: yyyy-mm-dd',
+                       start = "2020-07-01",
+                       end = "2021-06-30"
+        )
+        
+        )
+        ,
 
         # Show plots of the generated distribution
         mainPanel(
@@ -167,7 +188,11 @@ ui <- fluidPage(
             htmlOutput("text"),
            plotOutput("EventPlot", height = "400px", width = "600px"),
            plotOutput("EventMinutesPlot", height = "400px", width = "600px"),
-           plotOutput("PeoplePlot", height = "600px", width = "600px")),
+           plotOutput("PeoplePlot", height = "600px", width = "600px"),
+           verbatimTextOutput("dateRangeText"),
+           verbatimTextOutput("numRowsText"),
+           
+           ),
 
                    tabPanel("Instructions", 
                             htmlOutput("instruc"),
@@ -176,17 +201,44 @@ ui <- fluidPage(
             
             )
     )
+    
+)
 
+
+### Server Logic ----------
 
 # Define server logic required to draw graphs
 server <- function(input, output) {
 
     
+    output$dateRangeText  <- renderText({
+        paste("input$dateRange is",
+              paste(as.character(input$dateRange), collapse = " to ")
+        )
+    })
+    
+    
+    ed.srv2 <- reactive( {ed.srv %>%
+        filter( Day  >= input$dateRange[1]  & Day <= input$dateRange[2] ) 
+        }
+  )
+    
+    
+    output$numRowsText  <- renderText({
+        paste("Number of rows in EdSrvs is",
+              as.character( count(ed.srv2())),
+              " between ",
+              paste(as.character(input$dateRange), collapse = " to ")
+        )
+    })
+    
+    
+    
     
     output$text <- renderText({ 
         
         
-        df <-  zoom.people(input$keyword)
+        df <-  zoom.people(ed.srv2(), input$keyword)
         totalpeople <- df %>% count()
         totaljoinsss <- sum(df$TotalJoins)
         totalminutesss <- sum(df$TotalMinutes)
@@ -197,15 +249,15 @@ server <- function(input, output) {
         })
     
     output$EventPlot <- renderPlot({
-        zoom.event.plot(input$keyword, pulldate)
+        zoom.event.plot(ed.srv2(), input$keyword, pulldate)
     })
     
     output$EventMinutesPlot <- renderPlot({
-        zoom.event.minutes.plot(input$keyword, pulldate)
+        zoom.event.minutes.plot(ed.srv2(), input$keyword, pulldate)
     })
     
     output$PeoplePlot <- renderPlot({
-        zoom.people.plot(input$keyword, pulldate)
+        zoom.people.plot(ed.srv2(), input$keyword, pulldate)
     })
     
     #<p style='font-size:20px'> 
@@ -233,5 +285,12 @@ server <- function(input, output) {
     
 }
 
-# Run the application 
+#### Run the application -----
+
+
 shinyApp(ui = ui, server = server)
+
+
+
+### End -------
+

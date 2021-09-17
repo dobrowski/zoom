@@ -11,10 +11,10 @@ library(googlesheets4)
 
 ### Read all files in the data directory  -----
 
-setwd(here::here("data"))
+setwd(here::here("data","2020-21")) # Updated for particular school year
 
 #files <- fs::dir_ls(glob = "meeting*")
-files <- fs::dir_ls(glob = "meetinglistdetails_2020*")
+files <- fs::dir_ls(glob = "meetinglistdetails_202*")
 
 print(files)
 
@@ -30,8 +30,17 @@ ed.srv <- output %>%
     mutate(Day = mdy_hms(StartTime) %>% as_date() ,
            Topic = str_to_title(Topic),
            NameOriginalName = str_replace(NameOriginalName, "[[:space:]]\\(Host\\)", "")) %>%
-    group_by(Topic, UserName,MeetingId,Participants, Day, DurationMinutes, NameOriginalName) %>%
-    summarise(ParticipationMinutes = sum(DurationMinutes1)) %>%
+    mutate(NameOriginalName2 = 
+               str_extract(NameOriginalName, "[[:space:]]\\([[:space:]](.*)[[:space:]]\\)")
+           %>% str_sub(4,-2) ,
+           NameOriginalName = if_else(is.na(NameOriginalName2), NameOriginalName, NameOriginalName2) %>%
+               str_replace(  "\\(.*","") %>% 
+               str_replace(  "\\#.*","") %>%
+               str_trim()
+    ) %>%
+    select(-NameOriginalName2) %>%
+    group_by(Topic, UserName,MeetingId,Participants, Day, DurationMinutes = DurationMinutes11, NameOriginalName) %>%
+    summarise(ParticipationMinutes = sum(DurationMinutes17)) %>%
     ungroup() 
 
 
