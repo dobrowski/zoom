@@ -1,5 +1,6 @@
 #
-# This is a Shiny web application. 
+# This shiny app is designed to allow staff to enter any term and see how many people and how long people participated in zoom meetings
+# titled with that word or phrase. 
 #
 
 
@@ -25,12 +26,15 @@ mcoe_theme <- list(ggthemes::theme_hc(),
                                  y = "",
                                  fill ="") )
 
-
+# from the zoom.R file,  this is the processed data that comes out of the zoom detail reports.
 ed.srv <- readRDS("edsrv.rds")
 
+# the last data pulled 
 pulldate <- max(ed.srv$Day)
+mindate <- min(ed.srv$Day)
 
 
+# MCOE staff, to change color in graph
 staff <- c(
     "Alicia Diaz"
     ,"Alicia Gregory"
@@ -83,10 +87,12 @@ staff.pattern <- paste(staff, collapse = "|")
 
 #### Functions --------
 
+#  All the functions that are used in the report
+
 zoom.events <- function(df, keyword){
     df %>%
         filter(str_detect(Topic, str_to_title(keyword)),
-               !str_detect(Topic,"lanning")) %>%
+               !str_detect(Topic,"lanning")) %>%                     # To remove Planning meetings
         group_by(Topic, UserName,MeetingId,Day ) %>%
         summarise(MinutesCollective = sum(ParticipationMinutes),
                   Attendees = n()) %>%
@@ -98,7 +104,7 @@ zoom.events <- function(df, keyword){
 zoom.people <- function(df, keyword){
     df %>%
         filter(str_detect(Topic, str_to_title(keyword)),
-               !str_detect(Topic,"lanning")) %>%
+               !str_detect(Topic,"lanning")) %>%                     # To remove Planning meetings
         group_by(NameOriginalName ) %>%
         summarise(TotalMinutes = sum(ParticipationMinutes),
                   TotalJoins = n()) %>%
@@ -113,7 +119,7 @@ zoom.event.plot <- function(df , keyword, pulldate) {
         geom_line(color = "blue") +
         geom_point() +
         mcoe_theme +
-        labs(title = paste0(keyword," Zoom meeting attendees"),
+        labs(title = paste0("'",keyword,"' Zoom meeting attendees"),
              y = "Total number of unique names \nper meeting",
              caption = paste0("Note: Only includes Meetings with '",keyword,"' in the Meeting Name\n
          Data pulled through ",pulldate) )
@@ -128,7 +134,7 @@ zoom.event.minutes.plot <- function(df, keyword, pulldate) {
         geom_line(color = "blue") +
         geom_point() +
         mcoe_theme +
-        labs(title = paste0("Total Minutes of Participation in ",keyword," Zoom meetings"),
+        labs(title = paste0("Total Minutes of Participation in '",keyword,"' Zoom meetings"),
              y = "Sum of minutes of all \nparticipants per meeting",
              caption = paste0("Note: Only includes Meetings with '",keyword,"' in the Meeting Name\n
          Data pulled on ",pulldate) )
@@ -147,7 +153,7 @@ zoom.people.plot <- function(df, keyword, pulldate) {
         coord_flip() +
         mcoe_theme +
         theme(legend.position = "none") +
-        labs(title = paste0("Longest Cumulative Participation at ",keyword," Zoom meetings"),
+        labs(title = paste0("Longest Cumulative Participation at '",keyword,"' Zoom meetings"),
              subtitle = "Ed Services staff are in orange",
              y = "Total number of minutes",
              caption = paste0("Note: Only includes Meetings with '",keyword,"' in the Meeting Name\n
@@ -173,7 +179,9 @@ ui <- fluidPage(
         dateRangeInput('dateRange',
                        label = 'Date range input: yyyy-mm-dd',
                        start = "2020-07-01",
-                       end = "2021-06-30"
+                       end = "2021-06-30",
+                       min = mindate,
+                       max = pulldate
         )
         
         )
