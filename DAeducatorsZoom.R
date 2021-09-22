@@ -1,50 +1,75 @@
 
 # This script is to help identify educators from DA districts that participated in Zooms during the pandemic  
 
+### Libraries ------
 
+
+library(MCOE)
+library(tidyverse)
+library(vroom)
+library(janitor)
+library(lubridate)
+library(here)
+library(googlesheets4)
 
 ed.srv <- readRDS("edsrv.rds")
 
+### Read all files in the data directory  -----
 
-santa.denise <- ed.srv %>% 
-    filter(str_detect(UserName, "Denise"))
+setwd(here::here("data")) # Updated for particular school year
 
+#files <- fs::dir_ls(glob = "meeting*")
+files <- fs::dir_ls(glob = "meetinglistdetails_202*")
 
-denise.topics <- santa.denise %>% 
-    select(Topic) %>%
-    distinct()
-# None of the meetings have Santa Rita in title 
+print(files)
 
+output <- map_df(files, ~read_csv(.x)) %>% clean_names(case = "upper_camel")
 
-rita.topics <- ed.srv %>% 
-    filter(str_detect(Topic,"Rita") &  # Sr
-               !str_detect(Topic,"Burk")) %>%
-    select(Topic:DurationMinutes) %>%
-    distinct()
-#  only four meetings with Santa Rita in title
+setwd(here())
 
 
-rita.email <- output %>%
-    filter(str_detect( UserEmail14, "santarita" ),
-           str_detect(Department,"Educational")) %>%
-    mutate(Day = mdy_hms(StartTime) %>% as_date() ,
-           Topic = str_to_title(Topic),
-           NameOriginalName = str_replace(NameOriginalName, "[[:space:]]\\(Host\\)", "")) %>%
-    mutate(NameOriginalName2 = 
-               str_extract(NameOriginalName, "[[:space:]]\\([[:space:]](.*)[[:space:]]\\)")
-           %>% str_sub(4,-2) ,
-           NameOriginalName = if_else(is.na(NameOriginalName2), NameOriginalName, NameOriginalName2) %>%
-               str_replace(  "\\(.*","") %>% 
-               str_replace(  "\\#.*","") %>%
-               str_trim()
-    ) %>%
-    select(-NameOriginalName2) %>%
-    group_by(Topic, UserName,MeetingId,Participants, Day, DurationMinutes = DurationMinutes11, NameOriginalName, UserEmail14) %>%
-    summarise(ParticipationMinutes = sum(DurationMinutes17)) %>%
-    ungroup() 
-           
 
+### Denise -------
 
+# santa.denise <- ed.srv %>% 
+#     filter(str_detect(UserName, "Denise"))
+# 
+# 
+# denise.topics <- santa.denise %>% 
+#     select(Topic) %>%
+#     distinct()
+# # None of the meetings have Santa Rita in title 
+# 
+# 
+# rita.topics <- ed.srv %>% 
+#     filter(str_detect(Topic,"Rita") &  # Sr
+#                !str_detect(Topic,"Burk")) %>%
+#     select(Topic:DurationMinutes) %>%
+#     distinct()
+# #  only four meetings with Santa Rita in title
+# 
+# 
+# rita.email <- output %>%
+#     filter(str_detect( UserEmail14, "santarita" ),
+#            str_detect(Department,"Educational")) %>%
+#     mutate(Day = mdy_hms(StartTime) %>% as_date() ,
+#            Topic = str_to_title(Topic),
+#            NameOriginalName = str_replace(NameOriginalName, "[[:space:]]\\(Host\\)", "")) %>%
+#     mutate(NameOriginalName2 = 
+#                str_extract(NameOriginalName, "[[:space:]]\\([[:space:]](.*)[[:space:]]\\)")
+#            %>% str_sub(4,-2) ,
+#            NameOriginalName = if_else(is.na(NameOriginalName2), NameOriginalName, NameOriginalName2) %>%
+#                str_replace(  "\\(.*","") %>% 
+#                str_replace(  "\\#.*","") %>%
+#                str_trim()
+#     ) %>%
+#     select(-NameOriginalName2) %>%
+#     group_by(Topic, UserName,MeetingId,Participants, Day, DurationMinutes = DurationMinutes11, NameOriginalName, UserEmail14) %>%
+#     summarise(ParticipationMinutes = sum(DurationMinutes17)) %>%
+#     ungroup() 
+#            
+
+### Functions ------
 
 
 email.list <- function(district) {
@@ -97,7 +122,7 @@ meeting.name.list <- function(district) {
 }
 
 
-meeting.name.list("Rita")
+rita <- meeting.name.list("Rita")
 
 
 meeting.name.list("Srusd")
@@ -117,62 +142,22 @@ meeting.name.list("Somoco")
 meeting.name.list("South")
 
 
-
-
-
-
-
-
-
 ### Find all attendees with a given email, in this case santarita ---------
 
 email.santa <- email.list("santarita")
 
 # Take the list of people with the given email, and find their Zoom name in a list
-email.santa.list <- email.santa %>% 
+email.santa.list <- email.santa %>%
     select(NameOriginalName) %>%
     distinct() %>%
     unlist()
 
-# Find all the meetings that those Zoom names attended 
+# Find all the meetings that those Zoom names attended
 all.meetings.from.list  <- ed.srv %>%
     filter(NameOriginalName %in% email.santa.list)
 
 
-
-### Use meeting name list to get bigger list of attendance at meetings-----
-
-#  Come up with all Meetings with common names in it (Rita or SRUSD)
-meeting.santa <- meeting.name.list("Rita")
-
-meeting.santa2 <- meeting.name.list("Srusd")
-
-# Join them together
-meeting.santa <- meeting.santa %>%
-    bind_rows(meeting.santa2)
-
-
-meeting.name.list("Rita|Srusd")
-
-# Find everyone that was at that meeting, remove MCOE Ed Services staff, get a list of all the other attendees (and assume they are from the district)
-meeting.santa.list <- meeting.santa %>% 
-    left_join(ed.srv) %>%
-    filter(!str_detect(str_trim(NameOriginalName), staff.pattern))%>% 
-    select(NameOriginalName) %>%
-    distinct() %>%
-    unlist()
-
-# Find all the meetings all those attendees also attended.
-all.meetings.from.list2  <- ed.srv %>%
-    filter(NameOriginalName %in% meeting.santa.list)
-
-
-
 ### Combine both lists ------
-
-big.list <- all.meetings.from.list %>%
-    bind_rows(all.meetings.from.list2) %>%
-    distinct()
 
 
 combo <- function(meeting.words, email.words) {
@@ -213,7 +198,17 @@ combo <- function(meeting.words, email.words) {
 
 combo(meeting.words = c("Rita","Srusd"), email.words = c("santarita"))
 
-
-
 mpusd <- combo(meeting.words = c("Mpusd"), email.words = c("mpusd"))
 
+
+
+
+# Four categories? 
+# distance learning support /prof dev
+# emergency services
+# SEL work
+# Level2 supports
+
+
+
+### End --------
