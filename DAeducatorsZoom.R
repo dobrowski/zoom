@@ -12,7 +12,7 @@ library(lubridate)
 library(here)
 library(googlesheets4)
 
-ed.srv <- readRDS("edsrv.rds")
+# ed.srv <- readRDS("edsrv.rds")
 
 ### Read all files in the data directory  -----
 
@@ -26,6 +26,73 @@ print(files)
 output <- map_df(files, ~read_csv(.x)) %>% clean_names(case = "upper_camel")
 
 setwd(here())
+
+
+
+ed.srv.super <- output %>%
+    filter(str_detect(Department,"Educational|Super")) %>%
+    mutate(Day = mdy_hms(StartTime) %>% as_date() ,
+           Topic = str_to_title(Topic),
+           NameOriginalName = str_replace(NameOriginalName, "[[:space:]]\\(Host\\)", "")) %>%
+    mutate(NameOriginalName2 = 
+               str_extract(NameOriginalName, "[[:space:]]\\([[:space:]](.*)[[:space:]]\\)")
+           %>% str_sub(4,-2) ,
+           NameOriginalName = if_else(is.na(NameOriginalName2), NameOriginalName, NameOriginalName2) %>%
+               str_replace(  "\\(.*","") %>% 
+               str_replace(  "\\#.*","") %>%
+               str_trim()
+    ) %>%
+    select(-NameOriginalName2) %>%
+    group_by(Topic, UserName,MeetingId,Participants, Day, DurationMinutes = DurationMinutes11, NameOriginalName) %>%
+    summarise(ParticipationMinutes = sum(DurationMinutes17)) %>%
+    ungroup()
+
+
+
+
+
+staff <- c(
+    "Alicia Diaz"
+    ,"Alicia Gregory"
+    ,"Caryn Lewis"
+    ,"Cathy Cranson"
+    ,"David Dobrowski"
+    ,"Denise Green"
+    ,"Dora Salazar"
+    ,"Dora Ann Salazar"
+    ,"Esther Rubio"
+    ,"jrmendoza"
+    ,"Laurie Ramirez"
+    ,"Michelle Ramirez"
+    ,"Megan Matteoni"
+    ,"Philip Davis"
+    ,"Roberto Nunez"
+    ,"Roberto Núñez"
+    ,"Will Franzell"
+    ,"Michelle Rios"
+    ,"Gail Kuehl"
+    ,"Adriana Chavarin"
+    ,"Maria Ramirez"
+    ,"Juanita Savinon"
+    ,"Rod Garcia"
+    ,"Mara Wold"
+    ,"Norma Esparza"
+    ,"Lety Gomez-Gong"
+    ,"Jennifer Elemen"
+    ,"Edi Porter"
+    ,"Denise Green"
+    ,"Eliza Gomez"
+    ,"Gelacio Gonzalez"
+    ,"Irma Lopez"
+    ,"Lety Gomez"
+    ,"Alicia Gregory"
+    ,"Monica Cano"
+    ,"Eric Painter"
+    ,"Debra Brau"  #  Note, not in Ed services
+)
+
+
+staff.pattern <- paste(staff, collapse = "|")
 
 
 
@@ -55,18 +122,18 @@ setwd(here())
 #     mutate(Day = mdy_hms(StartTime) %>% as_date() ,
 #            Topic = str_to_title(Topic),
 #            NameOriginalName = str_replace(NameOriginalName, "[[:space:]]\\(Host\\)", "")) %>%
-#     mutate(NameOriginalName2 = 
+#     mutate(NameOriginalName2 =
 #                str_extract(NameOriginalName, "[[:space:]]\\([[:space:]](.*)[[:space:]]\\)")
 #            %>% str_sub(4,-2) ,
 #            NameOriginalName = if_else(is.na(NameOriginalName2), NameOriginalName, NameOriginalName2) %>%
-#                str_replace(  "\\(.*","") %>% 
+#                str_replace(  "\\(.*","") %>%
 #                str_replace(  "\\#.*","") %>%
 #                str_trim()
 #     ) %>%
 #     select(-NameOriginalName2) %>%
 #     group_by(Topic, UserName,MeetingId,Participants, Day, DurationMinutes = DurationMinutes11, NameOriginalName, UserEmail14) %>%
 #     summarise(ParticipationMinutes = sum(DurationMinutes17)) %>%
-#     ungroup() 
+#     ungroup()
 #            
 
 ### Functions ------
@@ -76,7 +143,7 @@ email.list <- function(district) {
     
     output %>%
         filter(str_detect( UserEmail14, district ),          # Only people with emails with the 'right' domain
-               str_detect(Department,"Educational")) %>%     # Onl;y get Ed Services meetings 
+               str_detect(Department,"Educational|Super")) %>%     # Onl;y get Ed Services meetings 
         mutate(Day = mdy_hms(StartTime) %>% as_date() ,
                Topic = str_to_title(Topic),
                NameOriginalName = str_replace(NameOriginalName, "[[:space:]]\\(Host\\)", "")) %>%
@@ -114,18 +181,22 @@ email.list("salinasuh")
 
 meeting.name.list <- function(district) {
     
-    ed.srv %>% 
-    filter(str_detect(Topic,district) ) %>%  # Sr
+    district.list <- paste(district, collapse = "|") %>%
+        str_to_lower()
+    
+    
+    ed.srv.super %>% 
+    filter(str_detect(str_to_lower(Topic),district.list) ) %>%  # Sr
     select(Topic:DurationMinutes) %>%
     distinct()
     
 }
 
 
-rita <- meeting.name.list("Rita")
+rita <- meeting.name.list("rita")
 
 
-meeting.name.list("Srusd")
+srusd <-meeting.name.list("srusd")
 
 meeting.name.list("Mpusd")
 
@@ -144,17 +215,17 @@ meeting.name.list("South")
 
 ### Find all attendees with a given email, in this case santarita ---------
 
-email.santa <- email.list("santarita")
-
-# Take the list of people with the given email, and find their Zoom name in a list
-email.santa.list <- email.santa %>%
-    select(NameOriginalName) %>%
-    distinct() %>%
-    unlist()
-
-# Find all the meetings that those Zoom names attended
-all.meetings.from.list  <- ed.srv %>%
-    filter(NameOriginalName %in% email.santa.list)
+# email.santa <- email.list("santarita")
+# 
+# # Take the list of people with the given email, and find their Zoom name in a list
+# email.santa.list <- email.santa %>%
+#     select(NameOriginalName) %>%
+#     distinct() %>%
+#     unlist()
+# 
+# # Find all the meetings that those Zoom names attended
+# all.meetings.from.list  <- ed.srv %>%
+#     filter(NameOriginalName %in% email.santa.list)
 
 
 ### Combine both lists ------
@@ -170,21 +241,21 @@ combo <- function(meeting.words, email.words) {
         unlist()
     
     # Find all the meetings that those Zoom names attended 
-    all.meetings.from.list  <- ed.srv %>%
+    all.meetings.from.list  <- ed.srv.super %>%
         filter(NameOriginalName %in% email.santa.list)
     
     
     ##
     
      meeting.santa.list <- meeting.name.list(meeting.words) %>% 
-        left_join(ed.srv) %>%
+        left_join(ed.srv.super) %>%
         filter(!str_detect(str_trim(NameOriginalName), staff.pattern))%>% 
         select(NameOriginalName) %>%
         distinct() %>%
         unlist()
     
     # Find all the meetings all those attendees also attended.
-    all.meetings.from.list2  <- ed.srv %>%
+    all.meetings.from.list2  <- ed.srv.super %>%
         filter(NameOriginalName %in% meeting.santa.list)
     
     
@@ -196,19 +267,33 @@ combo <- function(meeting.words, email.words) {
 }
 
 
-combo(meeting.words = c("Rita","Srusd"), email.words = c("santarita"))
+rita <- combo(meeting.words = c("rita","srusd"), email.words = c("santarita")) %>%
+    arrange((UserName))
+
 
 mpusd <- combo(meeting.words = c("Mpusd"), email.words = c("mpusd"))
 
 
+#  Need to look at the code changing output to ed.srv.super and make sure things aren't lost. 
+write_sheet(rita ,
+            sheet = 1,
+            ss = "https://docs.google.com/spreadsheets/d/1bMF800Z4_yfLaGbHcXLXari4LpQObk30hheIEqUjOGU/edit#gid=642421465")
 
 
-# Four categories? 
+1# Four categories? 
 # distance learning support /prof dev
 # emergency services
 # SEL work
 # Level2 supports
 
+
+
+edservice <- output %>%
+    filter(str_detect(Department,"Education")) %>%
+    mutate(has.email = is.na(UserEmail14))
+
+
+edservice %>% janitor::tabyl(has.email)
 
 
 ### End --------
