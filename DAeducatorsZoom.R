@@ -274,10 +274,35 @@ rita <- combo(meeting.words = c("rita","srusd"), email.words = c("santarita")) %
 mpusd <- combo(meeting.words = c("Mpusd"), email.words = c("mpusd"))
 
 
+zoom.sheet <- "https://docs.google.com/spreadsheets/d/1bMF800Z4_yfLaGbHcXLXari4LpQObk30hheIEqUjOGU/edit#gid=642421465"
+
 #  Need to look at the code changing output to ed.srv.super and make sure things aren't lost. 
 write_sheet(rita ,
             sheet = 1,
-            ss = "https://docs.google.com/spreadsheets/d/1bMF800Z4_yfLaGbHcXLXari4LpQObk30hheIEqUjOGU/edit#gid=642421465")
+            ss = zoom.sheet)
+
+write_sheet(mpusd ,
+            sheet = "mpusd",
+            ss = zoom.sheet)
+
+
+
+combo(meeting.words = c("soledad"), email.words = c("soledad")) %>%
+    write_sheet(sheet = "soledad",
+                ss = zoom.sheet)
+
+
+
+combo(meeting.words = c("smcj","somoco","south monterey"), email.words = c("smcj")) %>%
+    write_sheet(sheet = "SoMoCo",
+                ss = zoom.sheet)
+
+
+
+combo(meeting.words = c("suhsd","salinas union"), email.words = c("salinasuh")) %>%
+    write_sheet(sheet = "suhsd",
+                ss = zoom.sheet)
+
 
 
 1# Four categories? 
