@@ -52,7 +52,9 @@ ed.srv.super <- output %>%
 
 
 staff <- c(
-    "Alicia Diaz"
+    "Adilene Cabrera"
+    ,"Adriana Chavarin"
+    ,"Alicia Diaz"
     ,"Alicia Gregory"
     ,"Caryn Lewis"
     ,"Cathy Cranson"
@@ -60,34 +62,39 @@ staff <- c(
     ,"Denise Green"
     ,"Dora Salazar"
     ,"Dora Ann Salazar"
+    ,"Edi Porter"
+    ,"Eliza Gomez"
+    ,"Emiliano Valdez"
+    ,"Eric Painter"
     ,"Esther Rubio"
+    ,"Gail Kuehl"
+    ,"Gelacio Gonzalez"
+    ,"Irma Lopez"
+    ,"Jack Peterson"
+    ,"Jeanette Vera"
+    ,"Jennifer Elemen"
     ,"jrmendoza"
+    ,"Juanita Savinon"
+    ,"Lauren Patron-Castro"
     ,"Laurie Ramirez"
-    ,"Michelle Ramirez"
+    ,"Lety Gomez-Gong"
+    ,"Lety Gomez"
+    ,"Mara Wold"
+    ,"Matt Turkie"
+    ,"Maria Ramirez"
     ,"Megan Matteoni"
+    ,"Michelle Ramirez"
+    ,"Michelle Rios"
+    ,"Monica Cano"
+    ,"Norma Esparza"
     ,"Philip Davis"
     ,"Roberto Nunez"
     ,"Roberto Núñez"
-    ,"Will Franzell"
-    ,"Michelle Rios"
-    ,"Gail Kuehl"
-    ,"Adriana Chavarin"
-    ,"Maria Ramirez"
-    ,"Juanita Savinon"
     ,"Rod Garcia"
-    ,"Mara Wold"
-    ,"Norma Esparza"
-    ,"Lety Gomez-Gong"
-    ,"Jennifer Elemen"
-    ,"Edi Porter"
-    ,"Denise Green"
-    ,"Eliza Gomez"
-    ,"Gelacio Gonzalez"
-    ,"Irma Lopez"
-    ,"Lety Gomez"
-    ,"Alicia Gregory"
-    ,"Monica Cano"
-    ,"Eric Painter"
+    ,"Roy Phillips"
+    ,"Tara Crampton"
+    ,"Will Franzell"
+
     ,"Debra Brau"  #  Note, not in Ed services
 )
 
@@ -277,35 +284,43 @@ mpusd <- combo(meeting.words = c("Mpusd"), email.words = c("mpusd"))
 zoom.sheet <- "https://docs.google.com/spreadsheets/d/1bMF800Z4_yfLaGbHcXLXari4LpQObk30hheIEqUjOGU/edit#gid=642421465"
 
 #  Need to look at the code changing output to ed.srv.super and make sure things aren't lost. 
-write_sheet(rita ,
-            sheet = 1,
+
+combo(meeting.words = c("rita","srusd"), email.words = c("santarita")) %>%
+    arrange((UserName)) %>%
+    support.categories() %>%
+    write_sheet(sheet = "rita",
             ss = zoom.sheet)
 
-write_sheet(mpusd ,
-            sheet = "mpusd",
+
+combo(meeting.words = c("Mpusd"), email.words = c("mpusd")) %>%
+    support.categories() %>%
+    write_sheet(sheet = "mpusd",
             ss = zoom.sheet)
 
 
 
 combo(meeting.words = c("soledad"), email.words = c("soledad")) %>%
+    support.categories() %>%
     write_sheet(sheet = "soledad",
                 ss = zoom.sheet)
 
 
 
 combo(meeting.words = c("smcj","somoco","south monterey"), email.words = c("smcj")) %>%
+    support.categories() %>%
     write_sheet(sheet = "SoMoCo",
                 ss = zoom.sheet)
 
 
 
 combo(meeting.words = c("suhsd","salinas union"), email.words = c("salinasuh")) %>%
+    support.categories() %>%
     write_sheet(sheet = "suhsd",
                 ss = zoom.sheet)
 
 
 
-1# Four categories? 
+# Four categories? 
 # distance learning support /prof dev
 # emergency services
 # SEL work
@@ -319,6 +334,39 @@ edservice <- output %>%
 
 
 edservice %>% janitor::tabyl(has.email)
+
+
+
+support.categories <- function(df) {
+
+df %>% 
+    mutate(SupportCategory = 
+               case_when(str_detect(UserName,"Denise|Will|Rod|Jennifer|Dora|Edi|Norma|Painter" ) ~ "Teaching and Learning",
+                         str_detect(UserName,"Roberto|Cathy|Esther|Mara|Lety|Alicia Gregory" ) ~ "Leadership and School Systems",
+                         str_detect(UserName,"Megan|Gel|Laurie|Eliza|Monica" ) ~ "Early Childhood Education",
+                         str_detect(UserName,"David" ) ~ "Data Analysis",
+                         str_detect(UserName,"Deneen|Hull|Teri|Caryn|Michelle Ram|Infante" ) ~ "Equity and Inclusion",
+                       #  str_detect(UserName,"Caryn|Michelle Ram|Infante" ) ~ "ILN, LCAP and Equity",                        
+                                       )
+    )
+
+}
+
+rita.cats <- rita %>% support.categories()
+
+
+
+support.category.summary <-  function(df) {
+    
+    df %>%
+    group_by(SupportCategory) %>%
+    summarise(people = n(),
+              meetings = n_distinct(Topic, MeetingId, Day)
+              )
+}
+
+rita.cats %>%
+    support.category.summary()
 
 
 ### End --------
