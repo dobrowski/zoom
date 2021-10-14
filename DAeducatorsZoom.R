@@ -42,6 +42,7 @@ ed.srv.super <- output %>%
                str_replace(  "\\#.*","") %>%
                str_trim()
     ) %>%
+    filter(Day >= mdy("7/1/2020") & Day<=mdy("6/30/2021")) %>%
     select(-NameOriginalName2) %>%
     group_by(Topic, UserName,MeetingId,Participants, Day, DurationMinutes = DurationMinutes11, NameOriginalName) %>%
     summarise(ParticipationMinutes = sum(DurationMinutes17)) %>%
@@ -96,6 +97,9 @@ staff <- c(
     ,"Will Franzell"
 
     ,"Debra Brau"  #  Note, not in Ed services
+    ,"Allison Gribben" #  Note, not in Ed services
+    ,"Deneen Guss"
+    ,"Teri James"
 )
 
 
@@ -171,19 +175,10 @@ email.list <- function(district) {
 }
 
 email.list("santarita")
-
-
 email.list("soledad")
-
-
 email.list("mpusd")
-
-
 email.list("smcj")
-
-
 email.list("salinasuh")
-
 
 
 meeting.name.list <- function(district) {
@@ -269,7 +264,9 @@ combo <- function(meeting.words, email.words) {
     
     all.meetings.from.list %>%
         bind_rows(all.meetings.from.list2) %>%
-        distinct()
+        distinct() %>% 
+        filter(!str_detect(str_trim(NameOriginalName), staff.pattern))
+        
     
 }
 
@@ -285,22 +282,60 @@ zoom.sheet <- "https://docs.google.com/spreadsheets/d/1bMF800Z4_yfLaGbHcXLXari4L
 
 #  Need to look at the code changing output to ed.srv.super and make sure things aren't lost. 
 
+# Function to identify which Catergory supports should be grouped in
+support.categories <- function(df) {
+    
+    df %>% 
+        mutate(SupportCategory = 
+                   case_when(str_detect(UserName,"Denise|Will|Rod|Jennifer|Dora|Edi|Norma|Painter|Megan|Gel|Laurie|Eliza|Monica|Alicia Gregory|Irma" ) ~ "Distance Learning Support",
+                             str_detect(UserName,"Mara|Lety|Hull") ~ "Emergency Services",
+                             str_detect(UserName,"Laurie") & str_detect(Topic,"Response") ~ "Emergency Pandemic Support",
+                             str_detect(Topic,"Covid|Iln|Instructional Leader|Superin") ~ "Emergency Services",
+                             str_detect(UserName,"Cathy|Esther" ) ~ "SEL Work",
+                             str_detect(Topic,"Trauma|Mindful|Sel|Health|Couns" ) ~ "SEL Work",
+                             str_detect(UserName,"David" ) ~ "Level 2",
+                             str_detect(Topic,"Nep|National Equity|Lcap|Account|Significant|Learning Continuity" ) ~ "Level 2",
+                             str_detect(Topic,"All|Induct|Retire" ) ~ "Exclude",
+                             
+                             
+                             str_detect(UserName,"Deneen|Teri|Caryn" ) ~ "TBD",
+                             TRUE ~ "TBD"
+                             #  str_detect(UserName,"Caryn|Michelle Ram|Infante" ) ~ "ILN, LCAP and Equity",                        
+                   )
+        )#  Remove Jennifer,  Remove Emilano from attendee lists
+    
+}
+
+#  Function to say how many people (duplicated attendances) and how many meetings occurred 
+support.category.summary <-  function(df) {
+    
+    df %>%
+        group_by(SupportCategory) %>%
+        summarise(people = n(),
+                  meetings = n_distinct(Topic, MeetingId, Day)
+        )
+}
+
+
+
 combo(meeting.words = c("rita","srusd"), email.words = c("santarita")) %>%
-    arrange((UserName)) %>%
     support.categories() %>%
+    arrange(desc(SupportCategory)) %>%
     write_sheet(sheet = "rita",
             ss = zoom.sheet)
 
 
-combo(meeting.words = c("Mpusd"), email.words = c("mpusd")) %>%
+combo(meeting.words = c("Mpusd", "ord terrace", "mlk"), email.words = c("mpusd")) %>%
     support.categories() %>%
+    arrange(desc(SupportCategory)) %>%
     write_sheet(sheet = "mpusd",
             ss = zoom.sheet)
 
 
 
-combo(meeting.words = c("soledad"), email.words = c("soledad")) %>%
+combo(meeting.words = c("soledad", "susd"), email.words = c("soledad")) %>%
     support.categories() %>%
+    arrange(desc(SupportCategory)) %>%
     write_sheet(sheet = "soledad",
                 ss = zoom.sheet)
 
@@ -308,6 +343,7 @@ combo(meeting.words = c("soledad"), email.words = c("soledad")) %>%
 
 combo(meeting.words = c("smcj","somoco","south monterey"), email.words = c("smcj")) %>%
     support.categories() %>%
+    arrange(desc(SupportCategory)) %>%
     write_sheet(sheet = "SoMoCo",
                 ss = zoom.sheet)
 
@@ -315,16 +351,14 @@ combo(meeting.words = c("smcj","somoco","south monterey"), email.words = c("smcj
 
 combo(meeting.words = c("suhsd","salinas union"), email.words = c("salinasuh")) %>%
     support.categories() %>%
+    arrange(desc(SupportCategory)) %>%
     write_sheet(sheet = "suhsd",
                 ss = zoom.sheet)
 
 
 
-# Four categories? 
-# distance learning support /prof dev
-# emergency services
-# SEL work
-# Level2 supports
+## 
+
 
 
 
@@ -336,34 +370,13 @@ edservice <- output %>%
 edservice %>% janitor::tabyl(has.email)
 
 
+#  Filter July 1 2019 to June 30  2020 
 
-support.categories <- function(df) {
-
-df %>% 
-    mutate(SupportCategory = 
-               case_when(str_detect(UserName,"Denise|Will|Rod|Jennifer|Dora|Edi|Norma|Painter" ) ~ "Teaching and Learning",
-                         str_detect(UserName,"Roberto|Cathy|Esther|Mara|Lety|Alicia Gregory" ) ~ "Leadership and School Systems",
-                         str_detect(UserName,"Megan|Gel|Laurie|Eliza|Monica" ) ~ "Early Childhood Education",
-                         str_detect(UserName,"David" ) ~ "Data Analysis",
-                         str_detect(UserName,"Deneen|Hull|Teri|Caryn|Michelle Ram|Infante" ) ~ "Equity and Inclusion",
-                       #  str_detect(UserName,"Caryn|Michelle Ram|Infante" ) ~ "ILN, LCAP and Equity",                        
-                                       )
-    )
-
-}
 
 rita.cats <- rita %>% support.categories()
 
 
 
-support.category.summary <-  function(df) {
-    
-    df %>%
-    group_by(SupportCategory) %>%
-    summarise(people = n(),
-              meetings = n_distinct(Topic, MeetingId, Day)
-              )
-}
 
 rita.cats %>%
     support.category.summary()
