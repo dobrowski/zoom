@@ -42,7 +42,7 @@ ed.srv.super <- output %>%
                str_replace(  "\\#.*","") %>%
                str_trim()
     ) %>%
-    filter(Day >= mdy("7/1/2020") & Day<=mdy("6/30/2021")) %>%
+ #   filter(Day >= mdy("7/1/2020") & Day<=mdy("6/30/2021")) %>%
     select(-NameOriginalName2) %>%
     group_by(Topic, UserName,MeetingId,Participants, Day, DurationMinutes = DurationMinutes11, NameOriginalName) %>%
     summarise(ParticipationMinutes = sum(DurationMinutes17)) %>%
@@ -50,7 +50,7 @@ ed.srv.super <- output %>%
 
 
 
-
+### Staff ----
 
 staff <- c(
     "Adilene Cabrera"
@@ -63,6 +63,7 @@ staff <- c(
     ,"Denise Green"
     ,"Dora Salazar"
     ,"Dora Ann Salazar"
+    ,"Dylan Holmes"
     ,"Edi Porter"
     ,"Eliza Gomez"
     ,"Emiliano Valdez"
@@ -78,9 +79,12 @@ staff <- c(
     ,"Juanita Savinon"
     ,"Lauren Patron-Castro"
     ,"Laurie Ramirez"
+    ,"Laurie M. Ramirez"
+    ,'Laurie "M. Ramirez'
     ,"Lety Gomez-Gong"
     ,"Lety Gomez"
     ,"Mara Wold"
+    ,"Maralina Milazzo"
     ,"Matt Turkie"
     ,"Maria Ramirez"
     ,"Megan Matteoni"
@@ -90,6 +94,7 @@ staff <- c(
     ,"Norma Esparza"
     ,"Philip Davis"
     ,"Roberto Nunez"
+    ,"Dr. Roberto"
     ,"Roberto Núñez"
     ,"Rod Garcia"
     ,"Roy Phillips"
@@ -100,6 +105,8 @@ staff <- c(
     ,"Allison Gribben" #  Note, not in Ed services
     ,"Deneen Guss"
     ,"Teri James"
+    ,"Carla Strobridge Stewart"
+    ,"Jessica Hull"
 )
 
 
@@ -107,7 +114,7 @@ staff.pattern <- paste(staff, collapse = "|")
 
 
 
-### Denise -------
+### Denise Testing -------
 
 # santa.denise <- ed.srv %>% 
 #     filter(str_detect(UserName, "Denise"))
@@ -174,13 +181,6 @@ email.list <- function(district) {
     
 }
 
-email.list("santarita")
-email.list("soledad")
-email.list("mpusd")
-email.list("smcj")
-email.list("salinasuh")
-
-
 meeting.name.list <- function(district) {
     
     district.list <- paste(district, collapse = "|") %>%
@@ -193,6 +193,89 @@ meeting.name.list <- function(district) {
     distinct()
     
 }
+
+
+combo <- function(meeting.words, email.words) {
+    
+    
+    # Take the list of people with the given email, and find their Zoom name in a list
+    email.santa.list <- email.list(email.words) %>% 
+        select(NameOriginalName) %>%
+        distinct() %>%
+        unlist()
+    
+    # Find all the meetings that those Zoom names attended 
+    all.meetings.from.list  <- ed.srv.super %>%
+        filter(NameOriginalName %in% email.santa.list)
+    
+    
+    ##
+    
+    meeting.santa.list <- meeting.name.list(meeting.words) %>% 
+        left_join(ed.srv.super) %>%
+        filter(!str_detect(str_trim(NameOriginalName), staff.pattern))%>% 
+        select(NameOriginalName) %>%
+        distinct() %>%
+        unlist()
+    
+    # Find all the meetings all those attendees also attended.
+    all.meetings.from.list2  <- ed.srv.super %>%
+        filter(NameOriginalName %in% meeting.santa.list)
+    
+    
+    
+    all.meetings.from.list %>%
+        bind_rows(all.meetings.from.list2) %>%
+        distinct() %>% 
+        filter(!str_detect(str_trim(NameOriginalName), staff.pattern))
+    
+    
+}
+
+
+# Function to identify which Catergory supports should be grouped in
+support.categories <- function(df) {
+    
+    df %>% 
+        mutate(SupportCategory = 
+                   case_when(str_detect(UserName,"Denise|Will|Rod|Jennifer|Dora|Edi|Norma|Painter|Megan|Gel|Laurie|Eliza|Monica|Alicia Gregory|Irma" ) ~ "Distance Learning Support",
+                             str_detect(UserName,"Mara|Lety|Hull") ~ "Emergency Services",
+                             str_detect(UserName,"Laurie") & str_detect(Topic,"Response") ~ "Emergency Pandemic Support",
+                             str_detect(Topic,"Covid|Iln|Instructional Leader|Superin") ~ "Emergency Services",
+                             str_detect(UserName,"Cathy|Esther" ) ~ "SEL Work",
+                             str_detect(Topic,"Trauma|Mindful|Sel|Health|Couns" ) ~ "SEL Work",
+                             str_detect(UserName,"David" ) ~ "Level 2",
+                             str_detect(Topic,"Nep|National Equity|Lcap|Account|Significant|Learning Continuity" ) ~ "Level 2",
+                             str_detect(Topic,"All|Induct|Retire" ) ~ "Exclude",
+                             
+                             
+                             str_detect(UserName,"Deneen|Teri|Caryn" ) ~ "TBD",
+                             TRUE ~ "TBD"
+                             #  str_detect(UserName,"Caryn|Michelle Ram|Infante" ) ~ "ILN, LCAP and Equity",                        
+                   )
+        )#  Remove Jennifer,  Remove Emilano from attendee lists
+    
+}
+
+#  Function to say how many people (duplicated attendances) and how many meetings occurred 
+support.category.summary <-  function(df) {
+    
+    df %>%
+        group_by(SupportCategory) %>%
+        summarise(people = n(),
+                  meetings = n_distinct(Topic, MeetingId, Day)
+        )
+}
+
+
+### Run functions for districts -------
+
+email.list("santarita")
+email.list("soledad")
+email.list("mpusd")
+email.list("smcj")
+email.list("salinasuh")
+
 
 
 rita <- meeting.name.list("rita")
@@ -233,44 +316,6 @@ meeting.name.list("South")
 ### Combine both lists ------
 
 
-combo <- function(meeting.words, email.words) {
-    
-    
-    # Take the list of people with the given email, and find their Zoom name in a list
-    email.santa.list <- email.list(email.words) %>% 
-        select(NameOriginalName) %>%
-        distinct() %>%
-        unlist()
-    
-    # Find all the meetings that those Zoom names attended 
-    all.meetings.from.list  <- ed.srv.super %>%
-        filter(NameOriginalName %in% email.santa.list)
-    
-    
-    ##
-    
-     meeting.santa.list <- meeting.name.list(meeting.words) %>% 
-        left_join(ed.srv.super) %>%
-        filter(!str_detect(str_trim(NameOriginalName), staff.pattern))%>% 
-        select(NameOriginalName) %>%
-        distinct() %>%
-        unlist()
-    
-    # Find all the meetings all those attendees also attended.
-    all.meetings.from.list2  <- ed.srv.super %>%
-        filter(NameOriginalName %in% meeting.santa.list)
-    
-    
-    
-    all.meetings.from.list %>%
-        bind_rows(all.meetings.from.list2) %>%
-        distinct() %>% 
-        filter(!str_detect(str_trim(NameOriginalName), staff.pattern))
-        
-    
-}
-
-
 rita <- combo(meeting.words = c("rita","srusd"), email.words = c("santarita")) %>%
     arrange((UserName))
 
@@ -278,44 +323,16 @@ rita <- combo(meeting.words = c("rita","srusd"), email.words = c("santarita")) %
 mpusd <- combo(meeting.words = c("Mpusd"), email.words = c("mpusd"))
 
 
-zoom.sheet <- "https://docs.google.com/spreadsheets/d/1bMF800Z4_yfLaGbHcXLXari4LpQObk30hheIEqUjOGU/edit#gid=642421465"
-
 #  Need to look at the code changing output to ed.srv.super and make sure things aren't lost. 
 
-# Function to identify which Catergory supports should be grouped in
-support.categories <- function(df) {
-    
-    df %>% 
-        mutate(SupportCategory = 
-                   case_when(str_detect(UserName,"Denise|Will|Rod|Jennifer|Dora|Edi|Norma|Painter|Megan|Gel|Laurie|Eliza|Monica|Alicia Gregory|Irma" ) ~ "Distance Learning Support",
-                             str_detect(UserName,"Mara|Lety|Hull") ~ "Emergency Services",
-                             str_detect(UserName,"Laurie") & str_detect(Topic,"Response") ~ "Emergency Pandemic Support",
-                             str_detect(Topic,"Covid|Iln|Instructional Leader|Superin") ~ "Emergency Services",
-                             str_detect(UserName,"Cathy|Esther" ) ~ "SEL Work",
-                             str_detect(Topic,"Trauma|Mindful|Sel|Health|Couns" ) ~ "SEL Work",
-                             str_detect(UserName,"David" ) ~ "Level 2",
-                             str_detect(Topic,"Nep|National Equity|Lcap|Account|Significant|Learning Continuity" ) ~ "Level 2",
-                             str_detect(Topic,"All|Induct|Retire" ) ~ "Exclude",
-                             
-                             
-                             str_detect(UserName,"Deneen|Teri|Caryn" ) ~ "TBD",
-                             TRUE ~ "TBD"
-                             #  str_detect(UserName,"Caryn|Michelle Ram|Infante" ) ~ "ILN, LCAP and Equity",                        
-                   )
-        )#  Remove Jennifer,  Remove Emilano from attendee lists
-    
-}
 
-#  Function to say how many people (duplicated attendances) and how many meetings occurred 
-support.category.summary <-  function(df) {
-    
-    df %>%
-        group_by(SupportCategory) %>%
-        summarise(people = n(),
-                  meetings = n_distinct(Topic, MeetingId, Day)
-        )
-}
 
+### Final Main function comands ----------
+
+
+# Older version for archives
+# zoom.sheet <- "https://docs.google.com/spreadsheets/d/1bMF800Z4_yfLaGbHcXLXari4LpQObk30hheIEqUjOGU/edit#gid=642421465"
+zoom.sheet <- "https://docs.google.com/spreadsheets/d/1BnLOBptXEv5pL7ZxL5Q-MErA7v7Ly5BcnQyEaZBzcu4/edit#gid=0"
 
 
 combo(meeting.words = c("rita","srusd"), email.words = c("santarita")) %>%
@@ -357,7 +374,7 @@ combo(meeting.words = c("suhsd","salinas union"), email.words = c("salinasuh")) 
 
 
 
-## 
+###  Experimenting ----- 
 
 
 
