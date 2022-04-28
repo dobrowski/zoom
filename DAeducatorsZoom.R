@@ -29,7 +29,7 @@ setwd(here())
 
 
 
-ed.srv.super <- output %>%
+ed.srv.super <- output.2021.22 %>%
     filter(str_detect(Department,"Educational|Super")) %>%
     mutate(Day = mdy_hms(StartTime) %>% as_date() ,
            Topic = str_to_title(Topic),
@@ -48,6 +48,13 @@ ed.srv.super <- output %>%
     summarise(ParticipationMinutes = sum(DurationMinutes17)) %>%
     ungroup()
 
+
+output.2021.22 <- output %>%
+    mutate(Day = mdy_hms(StartTime) %>% as_date() ,
+           Topic = str_to_title(Topic),
+           NameOriginalName = str_replace(NameOriginalName, "[[:space:]]\\(Host\\)", "")
+           ) %>%
+           filter(Day >= mdy("7/1/2021") & Day<=mdy("6/30/2022"))
 
 
 ### Staff ----
@@ -71,21 +78,25 @@ staff <- c(
     ,"Esther Rubio"
     ,"Gail Kuehl"
     ,"Gelacio Gonzalez"
+    ,"Greg Fry"
     ,"Irma Lopez"
     ,"Jack Peterson"
     ,"Jeanette Vera"
-    ,"Jennifer Elemen"
+ #   ,"Jennifer Elemen"
     ,"jrmendoza"
     ,"Juanita Savinon"
     ,"Lauren Patron-Castro"
+ ,"lpatroncastro@montereycoe.org"
     ,"Laurie Ramirez"
     ,"Laurie M. Ramirez"
     ,'Laurie "M. Ramirez'
     ,"Lety Gomez-Gong"
     ,"Lety Gomez"
+    ,"Lora Carey"
     ,"Mara Wold"
     ,"Maralina Milazzo"
     ,"Matt Turkie"
+ ,"mturkie@montereycoe.org"
     ,"Maria Ramirez"
     ,"Megan Matteoni"
     ,"Michelle Ramirez"
@@ -104,14 +115,35 @@ staff <- c(
     ,"Debra Brau"  #  Note, not in Ed services
     ,"Allison Gribben" #  Note, not in Ed services
     ,"Deneen Guss"
+ ,"Colleen Stanley" 
+ ,"Nick Zafiratos"
+ ,"Timothy Ryan"
+ 
     ,"Teri James"
     ,"Carla Strobridge Stewart"
     ,"Jessica Hull"
+ ,"iPad"
+ ,"iPhone"
 )
 
 
 staff.pattern <- paste(staff, collapse = "|")
 
+
+da.staff <- c("Deneen Guss"
+    ,"Teri James"
+    ,"Maralina"
+    ,"Michelle Ramirez"
+    ,"Caryn"
+    ,"Dobrowski"
+    ,"Adriana Chavarin"
+    
+    # ,"Greg Fry"
+    # ,"Lora Carey"
+)
+
+
+da.staff.pattern <- paste(da.staff, collapse = "|")
 
 
 ### Denise Testing -------
@@ -157,14 +189,14 @@ staff.pattern <- paste(staff, collapse = "|")
 ### Functions ------
 
 
-email.list <- function(district) {
+email.list <- function(df, district) {
     
-    output %>%
+    df %>%
         filter(str_detect( UserEmail14, district ),          # Only people with emails with the 'right' domain
                str_detect(Department,"Educational|Super")) %>%     # Onl;y get Ed Services meetings 
-        mutate(Day = mdy_hms(StartTime) %>% as_date() ,
-               Topic = str_to_title(Topic),
-               NameOriginalName = str_replace(NameOriginalName, "[[:space:]]\\(Host\\)", "")) %>%
+        # mutate(Day = mdy_hms(StartTime) %>% as_date() ,
+        #        Topic = str_to_title(Topic),
+        #        NameOriginalName = str_replace(NameOriginalName, "[[:space:]]\\(Host\\)", "")) %>%
         mutate(NameOriginalName2 = 
                    str_extract(NameOriginalName, "[[:space:]]\\([[:space:]](.*)[[:space:]]\\)")
                %>% str_sub(4,-2) ,
@@ -195,11 +227,11 @@ meeting.name.list <- function(district) {
 }
 
 
-combo <- function(meeting.words, email.words) {
+combo <- function(df, meeting.words, email.words) {
     
     
     # Take the list of people with the given email, and find their Zoom name in a list
-    email.santa.list <- email.list(email.words) %>% 
+    email.santa.list <- email.list(df, email.words) %>% 
         select(NameOriginalName) %>%
         distinct() %>%
         unlist()
@@ -270,11 +302,11 @@ support.category.summary <-  function(df) {
 
 ### Run functions for districts -------
 
-email.list("santarita")
-email.list("soledad")
-email.list("mpusd")
-email.list("smcj")
-email.list("salinasuh")
+email.list(output, "santarita")
+email.list(output,"soledad")
+email.list(output,"mpusd")
+email.list(output,"smcj")
+email.list(output,"salinasuh")
 
 
 
@@ -316,11 +348,15 @@ meeting.name.list("South")
 ### Combine both lists ------
 
 
-rita <- combo(meeting.words = c("rita","srusd"), email.words = c("santarita")) %>%
+rita <- combo(df = output.2021.22,
+              meeting.words = c("rita","srusd"),
+              email.words = c("santarita")) %>%
     arrange((UserName))
 
 
-mpusd <- combo(meeting.words = c("Mpusd"), email.words = c("mpusd"))
+mpusd <- combo(df = output,
+               meeting.words = c("Mpusd"),
+               email.words = c("mpusd"))
 
 
 #  Need to look at the code changing output to ed.srv.super and make sure things aren't lost. 
@@ -335,14 +371,20 @@ mpusd <- combo(meeting.words = c("Mpusd"), email.words = c("mpusd"))
 zoom.sheet <- "https://docs.google.com/spreadsheets/d/1BnLOBptXEv5pL7ZxL5Q-MErA7v7Ly5BcnQyEaZBzcu4/edit#gid=0"
 
 
-combo(meeting.words = c("rita","srusd"), email.words = c("santarita")) %>%
+combo(df = output.2021.22,
+      meeting.words = c("rita","srusd"),
+      email.words = c("santarita")) %>%
+    filter(str_detect(str_trim(UserName), da.staff.pattern)) %>%
     support.categories() %>%
     arrange(desc(SupportCategory)) %>%
     write_sheet(sheet = "rita",
             ss = zoom.sheet)
 
 
-combo(meeting.words = c("Mpusd", "ord terrace", "mlk"), email.words = c("mpusd")) %>%
+combo(df = output.2021.22,
+      meeting.words = c("Mpusd", "ord terrace", "mlk"),
+      email.words = c("mpusd")) %>%
+    filter(str_detect(str_trim(UserName), da.staff.pattern)) %>%
     support.categories() %>%
     arrange(desc(SupportCategory)) %>%
     write_sheet(sheet = "mpusd",
@@ -350,7 +392,10 @@ combo(meeting.words = c("Mpusd", "ord terrace", "mlk"), email.words = c("mpusd")
 
 
 
-combo(meeting.words = c("soledad", "susd"), email.words = c("soledad")) %>%
+combo(df = output.2021.22,
+      meeting.words = c("soledad", "susd"), 
+      email.words = c("soledad")) %>%
+    filter(str_detect(str_trim(UserName), da.staff.pattern)) %>%
     support.categories() %>%
     arrange(desc(SupportCategory)) %>%
     write_sheet(sheet = "soledad",
@@ -358,7 +403,10 @@ combo(meeting.words = c("soledad", "susd"), email.words = c("soledad")) %>%
 
 
 
-combo(meeting.words = c("smcj","somoco","south monterey"), email.words = c("smcj")) %>%
+combo(df = output.2021.22,
+      meeting.words = c("smcj","somoco","south monterey"), 
+      email.words = c("smcj")) %>%
+    filter(str_detect(str_trim(UserName), da.staff.pattern)) %>%
     support.categories() %>%
     arrange(desc(SupportCategory)) %>%
     write_sheet(sheet = "SoMoCo",
@@ -366,11 +414,16 @@ combo(meeting.words = c("smcj","somoco","south monterey"), email.words = c("smcj
 
 
 
-combo(meeting.words = c("suhsd","salinas union"), email.words = c("salinasuh")) %>%
+combo(df = output.2021.22,
+      meeting.words = c("suhsd","salinas union"), 
+      email.words = c("salinasuh")) %>%
+    filter(str_detect(str_trim(UserName), da.staff.pattern)) %>%
     support.categories() %>%
     arrange(desc(SupportCategory)) %>%
     write_sheet(sheet = "suhsd",
                 ss = zoom.sheet)
+
+
 
 
 
