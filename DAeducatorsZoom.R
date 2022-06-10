@@ -4,6 +4,7 @@
 ### Libraries ------
 
 
+
 library(MCOE)
 library(tidyverse)
 library(vroom)
@@ -29,7 +30,21 @@ setwd(here())
 
 
 
-ed.srv.super <- output.2021.22 %>%
+
+
+output.2021.22 <- output %>%
+    mutate(Day = mdy_hms(StartTime) %>% as_date() ,
+           Topic = str_to_title(Topic),
+           NameOriginalName = str_replace(NameOriginalName, "[[:space:]]\\(Host\\)", "")
+           ) %>%
+           filter(Day >= mdy("7/1/2020") & Day<=mdy("6/30/2022"))
+
+
+
+
+ed.srv.df <- function(df) {
+    
+    df %>%
     filter(str_detect(Department,"Educational|Super")) %>%
     mutate(Day = mdy_hms(StartTime) %>% as_date() ,
            Topic = str_to_title(Topic),
@@ -42,19 +57,16 @@ ed.srv.super <- output.2021.22 %>%
                str_replace(  "\\#.*","") %>%
                str_trim()
     ) %>%
- #   filter(Day >= mdy("7/1/2020") & Day<=mdy("6/30/2021")) %>%
+    #   filter(Day >= mdy("7/1/2020") & Day<=mdy("6/30/2021")) %>%
     select(-NameOriginalName2) %>%
     group_by(Topic, UserName,MeetingId,Participants, Day, DurationMinutes = DurationMinutes11, NameOriginalName) %>%
     summarise(ParticipationMinutes = sum(DurationMinutes17)) %>%
     ungroup()
 
+}
 
-output.2021.22 <- output %>%
-    mutate(Day = mdy_hms(StartTime) %>% as_date() ,
-           Topic = str_to_title(Topic),
-           NameOriginalName = str_replace(NameOriginalName, "[[:space:]]\\(Host\\)", "")
-           ) %>%
-           filter(Day >= mdy("7/1/2021") & Day<=mdy("6/30/2022"))
+
+ed.srv.super <- ed.srv.df(output.2021.22)
 
 
 ### Staff ----
@@ -82,7 +94,7 @@ staff <- c(
     ,"Irma Lopez"
     ,"Jack Peterson"
     ,"Jeanette Vera"
- #   ,"Jennifer Elemen"
+    ,"Jennifer Elemen"
     ,"jrmendoza"
     ,"Juanita Savinon"
     ,"Lauren Patron-Castro"
@@ -265,24 +277,22 @@ combo <- function(df, meeting.words, email.words) {
 }
 
 
-# Function to identify which Catergory supports should be grouped in
+# Function to identify which Category supports should be grouped in
 support.categories <- function(df) {
     
     df %>% 
         mutate(SupportCategory = 
-                   case_when(str_detect(UserName,"Denise|Will|Rod|Jennifer|Dora|Edi|Norma|Painter|Megan|Gel|Laurie|Eliza|Monica|Alicia Gregory|Irma" ) ~ "Distance Learning Support",
-                             str_detect(UserName,"Mara|Lety|Hull") ~ "Emergency Services",
+                   case_when(str_detect(UserName,"Denise|Will|Rod|Jennifer|Dora|Edi|Norma|Painter|Megan|Gel|Laurie|Lora|Eliza|Monica|Alicia Gregory|Irma" ) ~ "Distance Learning Support",
+                             str_detect(UserName,"David|Maralina|Turk" ) ~ "Level 2",
+                             str_detect(UserName,"Mara |Lety|Hull") ~ "Emergency Services",
                              str_detect(UserName,"Laurie") & str_detect(Topic,"Response") ~ "Emergency Pandemic Support",
                              str_detect(Topic,"Covid|Iln|Instructional Leader|Superin") ~ "Emergency Services",
-                             str_detect(UserName,"Cathy|Esther" ) ~ "SEL Work",
+                             str_detect(UserName,"Cathy|Esther|Greg|Tara" ) ~ "SEL Work",
                              str_detect(Topic,"Trauma|Mindful|Sel|Health|Couns" ) ~ "SEL Work",
-                             str_detect(UserName,"David" ) ~ "Level 2",
                              str_detect(Topic,"Nep|National Equity|Lcap|Account|Significant|Learning Continuity" ) ~ "Level 2",
                              str_detect(Topic,"All|Induct|Retire" ) ~ "Exclude",
-                             
-                             
-                             str_detect(UserName,"Deneen|Teri|Caryn" ) ~ "TBD",
-                             TRUE ~ "TBD"
+                             str_detect(UserName,"Deneen|Teri|Caryn" ) ~ "Misc",
+                             TRUE ~ "Misc"
                              #  str_detect(UserName,"Caryn|Michelle Ram|Infante" ) ~ "ILN, LCAP and Equity",                        
                    )
         )#  Remove Jennifer,  Remove Emilano from attendee lists
@@ -299,6 +309,33 @@ support.category.summary <-  function(df) {
         )
 }
 
+
+# Function to apply categories and write sheets
+
+category.write <- function(df, sheetr, sheetname) {
+    
+ sorted <- df %>%
+        support.categories()
+ 
+ sorted %>%
+     arrange(desc(SupportCategory)) %>%
+     write_sheet(sheet = sheetname,
+                 ss = sheetr)
+ 
+ sorted %>%
+     support.category.summary() %>%
+     arrange(desc(SupportCategory)) %>%
+     write_sheet(sheet = paste0(sheetname,".sum"),
+                 ss = sheetr)
+ 
+ sorted %>%
+     select(SupportCategory, Day) %>%
+     distinct() %>%
+     arrange(desc(SupportCategory),Day) %>%
+     write_sheet(sheet = paste0(sheetname,".days"),
+                 ss = sheetr)
+ 
+}
 
 ### Run functions for districts -------
 
@@ -368,62 +405,40 @@ mpusd <- combo(df = output,
 
 # Older version for archives
 # zoom.sheet <- "https://docs.google.com/spreadsheets/d/1bMF800Z4_yfLaGbHcXLXari4LpQObk30hheIEqUjOGU/edit#gid=642421465"
-zoom.sheet <- "https://docs.google.com/spreadsheets/d/1BnLOBptXEv5pL7ZxL5Q-MErA7v7Ly5BcnQyEaZBzcu4/edit#gid=0"
+# zoom.sheet <- "https://docs.google.com/spreadsheets/d/1BnLOBptXEv5pL7ZxL5Q-MErA7v7Ly5BcnQyEaZBzcu4/edit#gid=0"
+zoom.sheet <- "https://docs.google.com/spreadsheets/d/1BnLOBptXEv5pL7ZxL5Q-MErA7v7Ly5BcnQyEaZBzcu4/edit#gid=1115566529"
 
 
 combo(df = output.2021.22,
       meeting.words = c("rita","srusd"),
       email.words = c("santarita")) %>%
-    filter(str_detect(str_trim(UserName), da.staff.pattern)) %>%
-    support.categories() %>%
-    arrange(desc(SupportCategory)) %>%
-    write_sheet(sheet = "rita",
-            ss = zoom.sheet)
+    category.write(zoom.sheet, "rita")
 
 
 combo(df = output.2021.22,
       meeting.words = c("Mpusd", "ord terrace", "mlk"),
       email.words = c("mpusd")) %>%
-    filter(str_detect(str_trim(UserName), da.staff.pattern)) %>%
-    support.categories() %>%
-    arrange(desc(SupportCategory)) %>%
-    write_sheet(sheet = "mpusd",
-            ss = zoom.sheet)
-
-
+ #   filter(str_detect(str_trim(UserName), da.staff.pattern)) %>%
+    category.write(zoom.sheet, "mpusd")
 
 combo(df = output.2021.22,
       meeting.words = c("soledad", "susd"), 
       email.words = c("soledad")) %>%
-    filter(str_detect(str_trim(UserName), da.staff.pattern)) %>%
-    support.categories() %>%
-    arrange(desc(SupportCategory)) %>%
-    write_sheet(sheet = "soledad",
-                ss = zoom.sheet)
-
+#    filter(str_detect(str_trim(UserName), da.staff.pattern)) %>%
+    category.write(zoom.sheet, "soledad")
 
 
 combo(df = output.2021.22,
       meeting.words = c("smcj","somoco","south monterey"), 
       email.words = c("smcj")) %>%
-    filter(str_detect(str_trim(UserName), da.staff.pattern)) %>%
-    support.categories() %>%
-    arrange(desc(SupportCategory)) %>%
-    write_sheet(sheet = "SoMoCo",
-                ss = zoom.sheet)
-
-
+#    filter(str_detect(str_trim(UserName), da.staff.pattern)) %>%
+    category.write(zoom.sheet, "somoco")
 
 combo(df = output.2021.22,
       meeting.words = c("suhsd","salinas union"), 
       email.words = c("salinasuh")) %>%
-    filter(str_detect(str_trim(UserName), da.staff.pattern)) %>%
-    support.categories() %>%
-    arrange(desc(SupportCategory)) %>%
-    write_sheet(sheet = "suhsd",
-                ss = zoom.sheet)
-
-
+ #   filter(str_detect(str_trim(UserName), da.staff.pattern)) %>%
+    category.write(zoom.sheet, "suhsd")
 
 
 
